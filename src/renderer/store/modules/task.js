@@ -12,7 +12,9 @@ const state = {
   currentTaskPeers: [],
   seedingList: [],
   taskList: [],
-  selectedGidList: []
+  selectedGidList: [],
+  sortType: 'default',
+  sortOrder: 'desc'
 }
 
 const getters = {
@@ -30,6 +32,12 @@ const mutations = {
   },
   CHANGE_CURRENT_LIST (state, currentList) {
     state.currentList = currentList
+  },
+  UPDATE_SORT_TYPE (state, sortType) {
+    state.sortType = sortType
+  },
+  UPDATE_SORT_ORDER (state, sortOrder) {
+    state.sortOrder = sortOrder
   },
   CHANGE_TASK_DETAIL_VISIBLE (state, visible) {
     state.taskDetailVisible = visible
@@ -56,6 +64,13 @@ const actions = {
     commit('CHANGE_CURRENT_LIST', currentList)
     commit('UPDATE_SELECTED_GID_LIST', [])
     dispatch('fetchList')
+  },
+  changeSortType ({ commit }, sortType) {
+    commit('UPDATE_SORT_TYPE', sortType)
+  },
+  toggleSortOrder ({ commit, state }) {
+    const newOrder = state.sortOrder === 'asc' ? 'desc' : 'asc'
+    commit('UPDATE_SORT_ORDER', newOrder)
   },
   fetchList ({ commit, state }) {
     return api.fetchTaskList({ type: state.currentList })

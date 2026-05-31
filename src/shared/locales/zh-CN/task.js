@@ -116,5 +116,6 @@ export default {
   'bt-download-complete-tips': '提示：你可以停止任务结束做种',
   'bt-stopping-seeding-tip': '正在停止做种，断开连接需要些时间，请耐心等待...',
   'download-fail-message': '{{taskName}} 下载失败',
-  'download-fail-notify': '下载失败'
+  'download-fail-notify': '下载失败',
+  'sort-by-completed': '按完成时间排序'
 }

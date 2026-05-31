@@ -1,12 +1,12 @@
 <template>
   <mo-drag-select
     class="task-list"
-    v-if="taskList.length > 0"
+    v-if="sortedTaskList.length > 0"
     attribute="attr"
     @change="handleDragSelectChange"
   >
     <div
-      v-for="item in taskList"
+      v-for="item in sortedTaskList"
       :key="item.gid"
       :attr="item.gid"
       :class="getItemClass(item)"
@@ -44,8 +44,25 @@
     computed: {
       ...mapState('task', {
         taskList: state => state.taskList,
-        selectedGidList: state => state.selectedGidList
-      })
+        selectedGidList: state => state.selectedGidList,
+        sortType: state => state.sortType,
+        sortOrder: state => state.sortOrder
+      }),
+      sortedTaskList () {
+        const list = [...this.taskList]
+        if (this.sortType === 'completed') {
+          list.sort((a, b) => {
+            const timeA = a.completedTime || 0
+            const timeB = b.completedTime || 0
+            if (this.sortOrder === 'asc') {
+              return timeA - timeB
+            } else {
+              return timeB - timeA
+            }
+          })
+        }
+        return list
+      }
     },
     methods: {
       handleDragSelectChange (selectedList) {

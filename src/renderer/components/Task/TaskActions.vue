@@ -14,6 +14,16 @@
       class="item"
       effect="dark"
       placement="bottom"
+      :content="$t('task.sort-by-completed')"
+    >
+      <i class="task-action" :class="{ active: sortType === 'completed' }" @click="onSortClick">
+        <mo-icon name="arrow-down" width="14" height="14" />
+      </i>
+    </el-tooltip>
+    <el-tooltip
+      class="item"
+      effect="dark"
+      placement="bottom"
       :content="$t('task.delete-selected-tasks')"
       v-if="currentList !== 'stopped'"
     >
@@ -81,6 +91,7 @@
   import '@/components/Icons/delete'
   import '@/components/Icons/purge'
   import '@/components/Icons/more'
+  import '@/components/Icons/arrow-down'
 
   export default {
     name: 'mo-task-actions',
@@ -95,7 +106,9 @@
     computed: {
       ...mapState('task', {
         currentList: state => state.currentList,
-        selectedGidListCount: state => state.selectedGidList.length
+        selectedGidListCount: state => state.selectedGidList.length,
+        sortType: state => state.sortType,
+        sortOrder: state => state.sortOrder
       })
     },
     filters: {
@@ -103,6 +116,13 @@
       timeFormat
     },
     methods: {
+      onSortClick () {
+        if (this.sortType === 'completed') {
+          this.$store.dispatch('task/toggleSortOrder')
+        } else {
+          this.$store.dispatch('task/changeSortType', 'completed')
+        }
+      },
       refreshSpin () {
         this.t && clearTimeout(this.t)
 
@@ -181,6 +201,10 @@
     outline: none;
     &:hover {
       color: $--task-action-hover-color;
+    }
+    &.active {
+      color: $--task-action-hover-color;
+      transform: scale(1.1);
     }
     &.disabled {
       color: $--task-action-disabled-color;
