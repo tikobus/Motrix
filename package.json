@@ -5,14 +5,14 @@
   "homepage": "https://motrix.app",
   "author": {
     "name": "Dr_rOot",
-    "email": "agalwood.net@gmail.com"
+    "email": "tikobus@github.com"
   },
   "copyright": "Copyright© Dr_rOot",
   "license": "MIT",
   "main": "./dist/electron/main.js",
   "repository": {
     "type": "git",
-    "url": "git@github.com:agalwood/Motrix.git"
+    "url": "git@github.com:tikobus/Motrix.git"
   },
   "scripts": {
     "release": "npm run build --publish onTagOrDraft",
