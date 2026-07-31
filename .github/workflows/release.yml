@@ -5,11 +5,9 @@ on:
     branches: [ master ]
     # Pushing a version tag (e.g. "v1.8.19") triggers a build AND publishes it
     tags: [ 'v*' ]
-  pull_request:
-    branches: [ master ]
 
-# `electron-builder --publish always` needs write access to create the GitHub
-# Release and upload assets
+# electron-builder needs write access to create the GitHub Release and
+# upload assets (tag builds only — see `--publish onTag` below).
 permissions:
   contents: write
 
@@ -17,54 +15,57 @@ jobs:
   release:
     runs-on: ${{ matrix.os }}
 
-    # Platforms to build on/for
+    # Build on/for macOS (→ .dmg) and Windows (→ .exe)
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
 
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # Full history so electron-builder can resolve the tag and notes
           fetch-depth: 0
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: yarn
 
-      - name: Install Snapcraft
-        uses: samuelmeuli/action-snapcraft@v2
-        # Only install Snapcraft on Ubuntu
-        if: startsWith(matrix.os, 'ubuntu')
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      # Compile main + renderer with webpack (does not invoke electron-builder)
+      - name: Build app sources
+        run: yarn run build:github
+
+      # ------------------------------------------------------------------
+      # Packaging & publishing
+      #
+      # `--publish onTag` is electron-builder's native publish mode: it only
+      # uploads to GitHub Releases when the build was triggered by a version
+      # tag (e.g. "v1.8.19"). Regular pushes and PRs build but skip publish.
+      #
+      # `GH_TOKEN` is what electron-builder reads to authenticate against the
+      # GitHub Releases API (the auto-provided GITHUB_TOKEN works).
+      # --------------------------------------------------------------------
+
+      - name: Build & publish macOS (.dmg)
+        if: startsWith(matrix.os, 'macos')
         env:
-          # Snapcraft
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.snapcraft_token }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No Apple Developer credentials in CI → skip notarize. The
+          # afterSign hook honors this flag and returns early.
+          SKIP_NOTARIZE: 'true'
+        run: yarn run electron-builder --mac dmg --publish onTag
 
-      - name: Test Snapcraft
-        if: startsWith(matrix.os, 'ubuntu')
-        run: snapcraft --help
-
-      - name: Build/release Electron app
-        uses: motrixapp/action-electron-builder@v2
-        with:
-          build_script_name: 'build:github'
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
-
-          # macOS code signing certificate
-          mac_certs: ${{ secrets.mac_certs }}
-          mac_certs_password: ${{ secrets.mac_certs_password }}
-
-          # Release to GitHub Releases only when the build was triggered by a
-          # version tag (e.g. "v1.8.19"). Regular pushes and PRs only build.
-          release: ${{ startsWith(github.ref, 'refs/tags/') }}
+      - name: Build & publish Windows (.exe)
+        if: startsWith(matrix.os, 'windows')
         env:
-          # Snapcraft
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.snapcraft_token }}
-          # macOS notarization
-          TEAM_ID: ${{ secrets.team_id }}
-          APPLE_ID: ${{ secrets.apple_id }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.apple_app_specific_password }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # Limit to `nsis` so we get the .exe installer. The repo also
+        # declares an `appx` target which requires a code-signing
+        # certificate; without it that target fails and would abort the
+        # whole Windows job. Restricting the target keeps the build green.
+        run: yarn run electron-builder --win nsis --publish onTag
